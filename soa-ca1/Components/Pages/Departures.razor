@@ -1,0 +1,201 @@
+@page "/departures"
+@using System.Xml
+
+<PageTitle>Departures · Trainsportation</PageTitle>
+
+<h1 class="display-6 mb-4">Live departures</h1>
+
+<div class="row g-2 mb-3">
+    <div class="col-md-8">
+        <label class="form-label" for="station">Station</label>
+        <select id="station" class="form-select" @bind="stationCode" @bind:after="LoadDepartures">
+            <option value="">Choose a station</option>
+            @foreach (var station in stations)
+            {
+                <option value="@station.Code">@station.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="minutes">Leaving in the next</label>
+        <select id="minutes" class="form-select" @bind="minutes" @bind:after="LoadDepartures">
+            <option value="30">30 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="90">90 minutes</option>
+        </select>
+    </div>
+</div>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger d-flex justify-content-between align-items-center">
+        <span>@errorMessage</span>
+        <button class="btn btn-outline-danger btn-sm" @onclick="LoadDepartures">Retry</button>
+    </div>
+}
+
+@if (departures.Count > 0)
+{
+    <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+        <div>
+            <label class="form-label small mb-1" for="direction">Direction</label>
+            <select id="direction" class="form-select form-select-sm" @bind="directionFilter">
+                <option value="">All</option>
+                @foreach (var direction in departures.Select(d => d.Direction).Distinct().Order())
+                {
+                    <option value="@direction">@direction</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label small mb-1" for="type">Type</label>
+            <select id="type" class="form-select form-select-sm" @bind="typeFilter">
+                <option value="">All</option>
+                @foreach (var type in departures.Select(d => d.TrainType).Distinct().Order())
+                {
+                    <option value="@type">@type</option>
+                }
+            </select>
+        </div>
+        <div class="ms-auto">
+            <span class="small me-1">Sort by:</span>
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary @(sortBy == "due" ? "active" : "")" @onclick='() => SortBy("due")'>Due time</button>
+                <button class="btn btn-outline-primary @(sortBy == "late" ? "active" : "")" @onclick='() => SortBy("late")'>Most late</button>
+                <button class="btn btn-outline-primary @(sortBy == "destination" ? "active" : "")" @onclick='() => SortBy("destination")'>Destination</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isLoading)
+{
+    <p class="text-muted">Loading departures…</p>
+}
+else if (hasSearched && errorMessage is null && FilteredDepartures().Count == 0)
+{
+    <div class="card">
+        <div class="card-body">
+            <h2 class="h6">No departures found</h2>
+            <p class="mb-0 text-muted">Nothing leaves this station in the next @minutes minutes with these filters. Try a longer window or clear the filters.</p>
+        </div>
+    </div>
+}
+else if (FilteredDepartures().Count > 0)
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Due</th>
+                        <th>Train</th>
+                        <th>Destination</th>
+                        <th>Status</th>
+                        <th>Last seen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var departure in FilteredDepartures())
+                    {
+                        <tr>
+                            <td>
+                                <strong>@departure.DueIn min</strong>
+                                <div class="small text-muted">@departure.ExpectedDeparture</div>
+                            </td>
+                            <td>
+                                @departure.TrainCode
+                                <div class="small text-muted">@departure.TrainType</div>
+                            </td>
+                            <td>
+                                @departure.Destination
+                                <div class="small text-muted">from @departure.Origin</div>
+                            </td>
+                            <td><span class="badge @BadgeClass(departure)">@departure.StatusLabel</span></td>
+                            <td class="small text-muted">@departure.LastLocation</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Station> stations = new();
+    private List<Departure> departures = new();
+    private string stationCode = string.Empty;
+    private int minutes = 60;
+    private string directionFilter = string.Empty;
+    private string typeFilter = string.Empty;
+    private string sortBy = "due";
+    private bool isLoading;
+    private bool hasSearched;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            stations = await IrishRailService.GetStationsAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task LoadDepartures()
+    {
+        if (string.IsNullOrEmpty(stationCode)) return;
+
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            departures = await IrishRailService.GetDeparturesAsync(stationCode, minutes);
+            directionFilter = string.Empty;
+            typeFilter = string.Empty;
+            SortBy(sortBy);
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (XmlException)
+        {
+            errorMessage = "Irish Rail sent data we couldn't read. Try again in a moment.";
+        }
+        finally
+        {
+            isLoading = false;
+            hasSearched = true;
+        }
+    }
+
+    private List<Departure> FilteredDepartures()
+    {
+        return departures
+            .Where(d => directionFilter == string.Empty || d.Direction == directionFilter)
+            .Where(d => typeFilter == string.Empty || d.TrainType == typeFilter)
+            .ToList();
+    }
+
+    private void SortBy(string option)
+    {
+        sortBy = option;
+        if (option == "late")
+            departures.Sort((a, b) => b.Late.CompareTo(a.Late));
+        else if (option == "destination")
+            departures.Sort((a, b) => string.Compare(a.Destination, b.Destination));
+        else
+            departures.Sort();
+    }
+
+    private static string BadgeClass(Departure departure)
+    {
+        if (departure.IsLate) return "text-bg-warning";
+        if (departure.Status == "En Route") return "text-bg-success";
+        return "text-bg-secondary";
+    }
+}

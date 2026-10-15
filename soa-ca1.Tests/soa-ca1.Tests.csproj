@@ -20,6 +20,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Include="SampleData\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\soa-ca1\soa-ca1.csproj" />
     </ItemGroup>
 
