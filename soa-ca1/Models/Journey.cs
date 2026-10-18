@@ -4,6 +4,7 @@ namespace soa_ca1.Models
     {
         public Departure Departure { get; set; } = new();
         public string ArrivalTime { get; set; } = string.Empty;
+        public HourlyForecast? ArrivalWeather { get; set; }
 
         public int CompareTo(Journey? other)
         {

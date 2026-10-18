@@ -1,4 +1,5 @@
 @page "/journey"
+@using System.Text.Json
 @using System.Xml
 
 <PageTitle>Plan a journey · Trainsportation</PageTitle>
@@ -73,6 +74,11 @@ else if (hasSearched && journeys.Count == 0)
 }
 else if (journeys.Count > 0)
 {
+    @if (weatherMessage is not null)
+    {
+        <div class="alert alert-secondary py-2 small">@weatherMessage</div>
+    }
+
     <div class="d-flex justify-content-end align-items-center mb-3">
         <span class="small me-1">Sort by:</span>
         <div class="btn-group btn-group-sm">
@@ -91,6 +97,7 @@ else if (journeys.Count > 0)
                         <th>Arrives at @StationName(toCode)</th>
                         <th>Train</th>
                         <th>Status</th>
+                        <th>Weather on arrival</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -107,6 +114,21 @@ else if (journeys.Count > 0)
                                 <div class="small text-muted">to @journey.Departure.Destination</div>
                             </td>
                             <td><span class="badge @journey.Departure.StatusBadgeClass">@journey.Departure.StatusLabel</span></td>
+                            <td>
+                                @if (journey.ArrivalWeather is null)
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else
+                                {
+                                    <strong>@Math.Round(journey.ArrivalWeather.Temperature)°C</strong> @journey.ArrivalWeather.Description
+                                    <div class="small text-muted">@journey.ArrivalWeather.RainChance% chance of rain</div>
+                                    @if (journey.ArrivalWeather.NeedsUmbrella)
+                                    {
+                                        <span class="badge text-bg-info">Bring an umbrella</span>
+                                    }
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -126,6 +148,7 @@ else if (journeys.Count > 0)
     private bool hasSearched;
     private string? errorMessage;
     private string? validationMessage;
+    private string? weatherMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,6 +171,7 @@ else if (journeys.Count > 0)
         try
         {
             journeys = await IrishRailService.GetJourneysAsync(fromCode, toCode, minutes);
+            await LoadArrivalWeather();
             SortBy(sortBy);
             hasSearched = true;
         }
@@ -166,6 +190,30 @@ else if (journeys.Count > 0)
         finally
         {
             isLoading = false;
+        }
+    }
+
+    // Weather is a bonus: if Open-Meteo fails, the train times are still shown
+    private async Task LoadArrivalWeather()
+    {
+        weatherMessage = null;
+        Station? destination = stations.Find(s => s.Code == toCode);
+        if (destination is null || journeys.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            List<HourlyForecast> forecasts = await WeatherService.GetForecastAsync(destination.Latitude, destination.Longitude);
+            foreach (var journey in journeys)
+            {
+                journey.ArrivalWeather = WeatherService.FindForecast(forecasts, journey.ArrivalTime, DateTime.Now);
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            weatherMessage = "The weather forecast isn't available right now, but the train times are up to date.";
         }
     }
 
