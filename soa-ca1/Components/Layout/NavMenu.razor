@@ -1,29 +1,12 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+<nav class="navbar navbar-background-color" data-bs-theme="dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">soa-ca1</a>
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+            <img src="images/logo.png" alt="" width="32" height="32">
+            Trainsportation
+        </a>
+        <div class="navbar-nav flex-row gap-3">
+            <NavLink class="nav-link" href="journey">Journey</NavLink>
+            <NavLink class="nav-link" href="departures">Departures</NavLink>
+        </div>
     </div>
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler"/>
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
+</nav>
