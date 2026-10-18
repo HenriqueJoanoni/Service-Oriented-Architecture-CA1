@@ -1,0 +1,198 @@
+@page "/journey"
+@using System.Xml
+
+<PageTitle>Plan a journey · Trainsportation</PageTitle>
+
+<h1 class="display-6 mb-4">Plan a journey</h1>
+
+<div class="row g-2 align-items-end mb-2">
+    <div class="col-md">
+        <label class="form-label" for="from">From</label>
+        <select id="from" class="form-select" @bind="fromCode">
+            <option value="">Choose a station</option>
+            @foreach (var station in stations)
+            {
+                <option value="@station.Code">@station.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-auto">
+        <button class="btn btn-outline-primary w-100" title="Swap stations" aria-label="Swap stations" @onclick="SwapStations">⇄</button>
+    </div>
+    <div class="col-md">
+        <label class="form-label" for="to">To</label>
+        <select id="to" class="form-select" @bind="toCode">
+            <option value="">Choose a station</option>
+            @foreach (var station in stations)
+            {
+                <option value="@station.Code">@station.Name</option>
+            }
+        </select>
+    </div>
+</div>
+
+<div class="row g-2 align-items-end mb-3">
+    <div class="col-sm-auto">
+        <label class="form-label" for="minutes">Leaving within</label>
+        <select id="minutes" class="form-select" @bind="minutes">
+            <option value="30">30 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="90">90 minutes</option>
+        </select>
+    </div>
+    <div class="col-sm-auto">
+        <button class="btn btn-primary w-100" @onclick="FindJourneys" disabled="@isLoading">Find trains</button>
+    </div>
+</div>
+
+@if (validationMessage is not null)
+{
+    <div class="alert alert-warning">@validationMessage</div>
+}
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger d-flex justify-content-between align-items-center">
+        <span>@errorMessage</span>
+        <button class="btn btn-outline-danger btn-sm" @onclick="FindJourneys">Retry</button>
+    </div>
+}
+
+@if (isLoading)
+{
+    <p class="text-muted">Checking the route of every train…</p>
+}
+else if (hasSearched && journeys.Count == 0)
+{
+    <div class="card">
+        <div class="card-body">
+            <h2 class="h6">No direct trains found</h2>
+            <p class="mb-0 text-muted">No train leaving @StationName(fromCode) in the next @minutes minutes stops at @StationName(toCode). Try a longer window.</p>
+        </div>
+    </div>
+}
+else if (journeys.Count > 0)
+{
+    <div class="d-flex justify-content-end align-items-center mb-3">
+        <span class="small me-1">Sort by:</span>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary @(sortBy == "leaves" ? "active" : "")" @onclick='() => SortBy("leaves")'>Leaves first</button>
+            <button class="btn btn-outline-primary @(sortBy == "arrives" ? "active" : "")" @onclick='() => SortBy("arrives")'>Arrives first</button>
+            <button class="btn btn-outline-primary @(sortBy == "late" ? "active" : "")" @onclick='() => SortBy("late")'>Least late</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Leaves</th>
+                        <th>Arrives at @StationName(toCode)</th>
+                        <th>Train</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var journey in journeys)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@journey.Departure.ExpectedDeparture</strong>
+                                <div class="small text-muted">in @journey.Departure.DueIn min</div>
+                            </td>
+                            <td><strong>@journey.ArrivalTime</strong></td>
+                            <td>
+                                @journey.Departure.TrainCode
+                                <div class="small text-muted">to @journey.Departure.Destination</div>
+                            </td>
+                            <td><span class="badge @journey.Departure.StatusBadgeClass">@journey.Departure.StatusLabel</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Station> stations = new();
+    private List<Journey> journeys = new();
+    private string fromCode = string.Empty;
+    private string toCode = string.Empty;
+    private int minutes = 60;
+    private string sortBy = "leaves";
+    private bool isLoading;
+    private bool hasSearched;
+    private string? errorMessage;
+    private string? validationMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            stations = await IrishRailService.GetStationsAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task FindJourneys()
+    {
+        isLoading = true;
+        hasSearched = false;
+        errorMessage = null;
+        validationMessage = null;
+        try
+        {
+            journeys = await IrishRailService.GetJourneysAsync(fromCode, toCode, minutes);
+            SortBy(sortBy);
+            hasSearched = true;
+        }
+        catch (ArgumentException ex)
+        {
+            validationMessage = ex.Message;
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (XmlException)
+        {
+            errorMessage = "Irish Rail sent data we couldn't read. Try again in a moment.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SwapStations()
+    {
+        (fromCode, toCode) = (toCode, fromCode);
+    }
+
+    private void SortBy(string option)
+    {
+        sortBy = option;
+        if (option == "arrives")
+        {
+            journeys.Sort((a, b) => string.Compare(a.ArrivalTime, b.ArrivalTime));
+        }
+        else if (option == "late")
+        {
+            journeys.Sort((a, b) => a.Departure.Late.CompareTo(b.Departure.Late));
+        }
+        else
+        {
+            journeys.Sort();
+        }
+    }
+
+    private string StationName(string code)
+    {
+        return stations.Find(s => s.Code == code)?.Name ?? code;
+    }
+}

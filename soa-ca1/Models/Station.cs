@@ -7,7 +7,10 @@ namespace soa_ca1.Models
 
         public int CompareTo(Station? other)
         {
-            if (other is null) return 1;
+            if (other is null)
+            {
+                return 1;
+            }
 
             return string.Compare(Name, other.Name, StringComparison.OrdinalIgnoreCase);
         }

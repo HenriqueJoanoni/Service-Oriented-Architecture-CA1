@@ -111,7 +111,7 @@ else if (FilteredDepartures().Count > 0)
                                 @departure.Destination
                                 <div class="small text-muted">from @departure.Origin</div>
                             </td>
-                            <td><span class="badge @BadgeClass(departure)">@departure.StatusLabel</span></td>
+                            <td><span class="badge @departure.StatusBadgeClass">@departure.StatusLabel</span></td>
                             <td class="small text-muted">@departure.LastLocation</td>
                         </tr>
                     }
@@ -185,17 +185,16 @@ else if (FilteredDepartures().Count > 0)
     {
         sortBy = option;
         if (option == "late")
+        {
             departures.Sort((a, b) => b.Late.CompareTo(a.Late));
+        } 
         else if (option == "destination")
+        {
             departures.Sort((a, b) => string.Compare(a.Destination, b.Destination));
+        }
         else
+        {
             departures.Sort();
-    }
-
-    private static string BadgeClass(Departure departure)
-    {
-        if (departure.IsLate) return "text-bg-warning";
-        if (departure.Status == "En Route") return "text-bg-success";
-        return "text-bg-secondary";
+        }
     }
 }
