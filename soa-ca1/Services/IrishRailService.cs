@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml.Linq;
 using RestSharp;
 using soa_ca1.Models;
@@ -108,7 +109,9 @@ namespace soa_ca1.Services
                 stations.Add(new Station
                 {
                     Code = Text(item, "StationCode"),
-                    Name = Text(item, "StationDesc")
+                    Name = Text(item, "StationDesc"),
+                    Latitude = Coordinate(item, "StationLatitude"),
+                    Longitude = Coordinate(item, "StationLongitude")
                 });
             }
             stations.Sort();
@@ -183,6 +186,12 @@ namespace soa_ca1.Services
         private static int Number(XElement item, string name)
         {
             return int.TryParse(Text(item, name), out int value) ? value : 0;
+        }
+
+        // The API always uses "54.0009"; InvariantCulture stops a pt-BR machine reading it as 540009
+        private static double Coordinate(XElement item, string name)
+        {
+            return double.TryParse(Text(item, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : 0;
         }
 
         private static string ShortTime(string time)
