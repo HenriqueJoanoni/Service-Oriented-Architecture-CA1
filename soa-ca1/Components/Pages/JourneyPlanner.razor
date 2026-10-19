@@ -6,6 +6,30 @@
 
 <h1 class="display-6 mb-4">Plan a journey</h1>
 
+@if (savedRoutes.Count > 0)
+{
+    <div class="card mb-4">
+        <div class="card-header">Your saved routes</div>
+        <ul class="list-group list-group-flush">
+            @foreach (var route in savedRoutes)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                    <button class="btn btn-link text-start text-decoration-none p-0" @onclick="() => UseRoute(route)">
+                        <strong>@route.Name</strong>
+                        <span class="d-block small text-muted">@StationName(route.FromCode) → @StationName(route.ToCode)</span>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" aria-label="Delete @route.Name" @onclick="() => DeleteRoute(route)">Delete</button>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@if (routeMessage is not null)
+{
+    <div class="alert alert-warning">@routeMessage</div>
+}
+
 <div class="row g-2 align-items-end mb-2">
     <div class="col-md">
         <label class="form-label" for="from">From</label>
@@ -43,6 +67,13 @@
     </div>
     <div class="col-sm-auto">
         <button class="btn btn-primary w-100" @onclick="FindJourneys" disabled="@isLoading">Find trains</button>
+    </div>
+    <div class="col-sm ms-sm-auto">
+        <label class="form-label" for="routeName">Route name (optional)</label>
+        <div class="input-group">
+            <input id="routeName" class="form-control" placeholder="add route name" @bind="routeName"/>
+            <button class="btn btn-outline-primary" @onclick="SaveRoute">Save route</button>
+        </div>
     </div>
 </div>
 
@@ -149,6 +180,9 @@ else if (journeys.Count > 0)
     private string? errorMessage;
     private string? validationMessage;
     private string? weatherMessage;
+    private List<SavedRoute> savedRoutes = new();
+    private string routeName = string.Empty;
+    private string? routeMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,6 +194,7 @@ else if (journeys.Count > 0)
         {
             errorMessage = ex.Message;
         }
+        LoadSavedRoutes();
     }
 
     private async Task FindJourneys()
@@ -215,6 +250,69 @@ else if (journeys.Count > 0)
         {
             weatherMessage = "The weather forecast isn't available right now, but the train times are up to date.";
         }
+    }
+
+    private void LoadSavedRoutes()
+    {
+        try
+        {
+            savedRoutes = RouteStore.Load(RouteStore.FILE_PATH);
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            routeMessage = "Your saved routes couldn't be read, so the list starts empty.";
+        }
+    }
+
+    private void SaveRoute()
+    {
+        routeMessage = null;
+        var route = new SavedRoute
+        {
+            Name = string.IsNullOrWhiteSpace(routeName) ? $"{StationName(fromCode)} → {StationName(toCode)}" : routeName.Trim(),
+            FromCode = fromCode,
+            ToCode = toCode
+        };
+
+        try
+        {
+            if (!RouteStore.Add(savedRoutes, route))
+            {
+                routeMessage = "That route's already saved.";
+                return;
+            }
+            RouteStore.Save(savedRoutes, RouteStore.FILE_PATH);
+            routeName = string.Empty;
+        }
+        catch (ArgumentException ex)
+        {
+            routeMessage = ex.Message;
+        }
+        catch (IOException)
+        {
+            routeMessage = "Couldn't save your routes. Try again.";
+        }
+    }
+
+    private void DeleteRoute(SavedRoute route)
+    {
+        routeMessage = null;
+        savedRoutes.Remove(route);
+        try
+        {
+            RouteStore.Save(savedRoutes, RouteStore.FILE_PATH);
+        }
+        catch (IOException)
+        {
+            routeMessage = "Couldn't save your routes. Try again.";
+        }
+    }
+
+    private async Task UseRoute(SavedRoute route)
+    {
+        fromCode = route.FromCode;
+        toCode = route.ToCode;
+        await FindJourneys();
     }
 
     private void SwapStations()
