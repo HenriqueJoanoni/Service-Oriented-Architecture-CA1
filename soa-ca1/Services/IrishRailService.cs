@@ -10,10 +10,9 @@ namespace soa_ca1.Services
     {
         public static readonly string BASE_URL = "https://api.irishrail.ie/realtime/realtime.asmx/";
         private static readonly XNamespace ns = "http://api.irishrail.ie/realtime/";
-        private static readonly RestClient client = new(BASE_URL);
+        private static readonly RestClient client = new(new RestClientOptions(BASE_URL) { Timeout = TimeSpan.FromSeconds(10) });
         private static List<Station>? cachedStations;
-
-        // The station list practically never changes, so it's only downloaded once
+        
         public static async Task<List<Station>> GetStationsAsync()
         {
             if (cachedStations is null)
@@ -66,8 +65,7 @@ namespace soa_ca1.Services
             }
 
             List<Departure> departures = await GetDeparturesAsync(fromCode, minutes);
-
-            // One request per train, so they run at the same time instead of one after the other
+            
             List<TrainStop>[] allStops = await Task.WhenAll(departures.Select(d => GetTrainStopsAsync(d.TrainCode, d.TrainDate)));
 
             var journeys = new List<Journey>();
@@ -82,8 +80,7 @@ namespace soa_ca1.Services
             journeys.Sort();
             return journeys;
         }
-
-        // A train only works for the trip if it stops at the destination after the departure station
+        
         public static Journey? BuildJourney(Departure departure, List<TrainStop> stops, string fromCode, string toCode)
         {
             TrainStop? from = stops.Find(s => s.LocationCode == fromCode);
@@ -123,7 +120,6 @@ namespace soa_ca1.Services
             var departures = new List<Departure>();
             foreach (XElement item in XDocument.Parse(xml).Descendants(ns + "objStationData"))
             {
-                // "D" = the train terminates at this station, so it never departs from it
                 if (Text(item, "Locationtype") == "D")
                 {
                     continue;
@@ -188,7 +184,6 @@ namespace soa_ca1.Services
             return int.TryParse(Text(item, name), out int value) ? value : 0;
         }
 
-        // The API always uses "54.0009"; InvariantCulture stops a pt-BR machine reading it as 540009
         private static double Coordinate(XElement item, string name)
         {
             return double.TryParse(Text(item, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : 0;

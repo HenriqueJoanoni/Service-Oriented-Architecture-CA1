@@ -10,7 +10,7 @@ namespace soa_ca1.Services
     public class WeatherService
     {
         public static readonly string BASE_URL = "https://api.open-meteo.com/v1/";
-        private static readonly RestClient client = new(BASE_URL);
+        private static readonly RestClient client = new(new RestClientOptions(BASE_URL) { Timeout = TimeSpan.FromSeconds(10) });
 
         public static async Task<List<HourlyForecast>> GetForecastAsync(double latitude, double longitude)
         {
