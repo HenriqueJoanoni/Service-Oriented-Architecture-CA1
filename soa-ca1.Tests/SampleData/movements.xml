@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfObjTrainMovements xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://api.irishrail.ie/realtime/">
+  <objTrainMovements>
+    <TrainCode>A154 </TrainCode>
+    <TrainDate>18 Oct 2026</TrainDate>
+    <LocationCode>CNLLY</LocationCode>
+    <LocationFullName>Dublin Connolly</LocationFullName>
+    <LocationOrder>1</LocationOrder>
+    <LocationType>O</LocationType>
+    <TrainOrigin>Dublin Connolly</TrainOrigin>
+    <TrainDestination>Belfast</TrainDestination>
+    <ScheduledArrival>00:00:00</ScheduledArrival>
+    <ScheduledDeparture>14:50:00</ScheduledDeparture>
+    <ExpectedArrival>00:00:00</ExpectedArrival>
+    <ExpectedDeparture>14:54:00</ExpectedDeparture>
+    <Arrival>14:10:48</Arrival>
+    <Departure>14:54:12</Departure>
+    <AutoArrival>1</AutoArrival>
+    <AutoDepart>1</AutoDepart>
+    <StopType>-</StopType>
+  </objTrainMovements>
+  <objTrainMovements>
+    <TrainCode>A154 </TrainCode>
+    <TrainDate>18 Oct 2026</TrainDate>
+    <LocationCode>DDALK</LocationCode>
+    <LocationFullName>Dundalk</LocationFullName>
+    <LocationOrder>24</LocationOrder>
+    <LocationType>S</LocationType>
+    <TrainOrigin>Dublin Connolly</TrainOrigin>
+    <TrainDestination>Belfast</TrainDestination>
+    <ScheduledArrival>15:49:00</ScheduledArrival>
+    <ScheduledDeparture>15:51:00</ScheduledDeparture>
+    <ExpectedArrival>15:49:42</ExpectedArrival>
+    <ExpectedDeparture>15:51:42</ExpectedDeparture>
+    <Arrival />
+    <Departure />
+    <AutoArrival />
+    <AutoDepart />
+    <StopType>N</StopType>
+  </objTrainMovements>
+  <objTrainMovements>
+    <TrainCode>A154 </TrainCode>
+    <TrainDate>18 Oct 2026</TrainDate>
+    <LocationCode>SUBJN</LocationCode>
+    <LocationFullName>Sheriff Street Junction</LocationFullName>
+    <LocationOrder>2</LocationOrder>
+    <LocationType>T</LocationType>
+    <TrainOrigin>Dublin Connolly</TrainOrigin>
+    <TrainDestination>Belfast</TrainDestination>
+    <ScheduledArrival>14:51:30</ScheduledArrival>
+    <ScheduledDeparture>14:51:30</ScheduledDeparture>
+    <ExpectedArrival>14:55:30</ExpectedArrival>
+    <ExpectedDeparture>14:55:30</ExpectedDeparture>
+    <Arrival />
+    <Departure />
+    <AutoArrival />
+    <AutoDepart />
+    <StopType>-</StopType>
+  </objTrainMovements>
+  <objTrainMovements>
+    <TrainCode>A154 </TrainCode>
+    <TrainDate>18 Oct 2026</TrainDate>
+    <LocationCode>DGHDA</LocationCode>
+    <LocationFullName>Drogheda</LocationFullName>
+    <LocationOrder>20</LocationOrder>
+    <LocationType>S</LocationType>
+    <TrainOrigin>Dublin Connolly</TrainOrigin>
+    <TrainDestination>Belfast</TrainDestination>
+    <ScheduledArrival>15:27:00</ScheduledArrival>
+    <ScheduledDeparture>15:29:00</ScheduledDeparture>
+    <ExpectedArrival>15:27:24</ExpectedArrival>
+    <ExpectedDeparture>15:29:24</ExpectedDeparture>
+    <Arrival>15:26:12</Arrival>
+    <Departure />
+    <AutoArrival>1</AutoArrival>
+    <AutoDepart />
+    <StopType>C</StopType>
+  </objTrainMovements>
+  <objTrainMovements>
+    <TrainCode>A154 </TrainCode>
+    <TrainDate>18 Oct 2026</TrainDate>
+    <LocationCode>BFSTC</LocationCode>
+    <LocationFullName>Belfast</LocationFullName>
+    <LocationOrder>31</LocationOrder>
+    <LocationType>D</LocationType>
+    <TrainOrigin>Dublin Connolly</TrainOrigin>
+    <TrainDestination>Belfast</TrainDestination>
+    <ScheduledArrival>17:00:00</ScheduledArrival>
+    <ScheduledDeparture>00:00:00</ScheduledDeparture>
+    <ExpectedArrival>17:00:42</ExpectedArrival>
+    <ExpectedDeparture>00:00:00</ExpectedDeparture>
+    <Arrival />
+    <Departure />
+    <AutoArrival />
+    <AutoDepart />
+    <StopType>-</StopType>
+  </objTrainMovements>
+</ArrayOfObjTrainMovements>
