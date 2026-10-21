@@ -8,20 +8,15 @@
 
 @if (savedRoutes.Count > 0)
 {
-    <div class="card mb-4">
-        <div class="card-header">Your saved routes</div>
-        <ul class="list-group list-group-flush">
-            @foreach (var route in savedRoutes)
-            {
-                <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                    <button class="btn btn-link text-start text-decoration-none p-0" @onclick="() => UseRoute(route)">
-                        <strong>@route.Name</strong>
-                        <span class="d-block small text-muted">@StationName(route.FromCode) → @StationName(route.ToCode)</span>
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm" aria-label="Delete @route.Name" @onclick="() => DeleteRoute(route)">Delete</button>
-                </li>
-            }
-        </ul>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+        <span class="small text-muted"><i class="bi bi-star" aria-hidden="true"></i> Saved routes:</span>
+        @foreach (var route in savedRoutes)
+        {
+            <span class="saved-pill d-inline-flex align-items-center border rounded-pill bg-white ps-3 pe-2 py-1">
+                <button class="btn btn-link btn-sm p-0 text-decoration-none" title="@StationName(route.FromCode) → @StationName(route.ToCode)" @onclick="() => UseRoute(route)">@route.Name</button>
+                <button class="btn-close ms-2" aria-label="Delete @route.Name" title="Delete" @onclick="() => DeleteRoute(route)"></button>
+            </span>
+        }
     </div>
 }
 
@@ -42,7 +37,7 @@
         </select>
     </div>
     <div class="col-md-auto">
-        <button class="btn btn-outline-primary w-100" title="Swap stations" aria-label="Swap stations" @onclick="SwapStations">⇄</button>
+        <button class="btn btn-outline-primary w-100" title="Swap stations" aria-label="Swap stations" @onclick="SwapStations"><i class="bi bi-arrow-left-right" aria-hidden="true"></i></button>
     </div>
     <div class="col-md">
         <label class="form-label" for="to">To</label>
@@ -68,13 +63,6 @@
     <div class="col-sm-auto">
         <button class="btn btn-primary w-100" @onclick="FindJourneys" disabled="@isLoading">Find trains</button>
     </div>
-    <div class="col-sm ms-sm-auto">
-        <label class="form-label" for="routeName">Route name (optional)</label>
-        <div class="input-group">
-            <input id="routeName" class="form-control" placeholder="add route name" @bind="routeName"/>
-            <button class="btn btn-outline-primary" @onclick="SaveRoute">Save route</button>
-        </div>
-    </div>
 </div>
 
 @if (validationMessage is not null)
@@ -92,80 +80,104 @@
 
 @if (isLoading)
 {
-    <p class="text-muted">Checking the route of every train…</p>
-}
-else if (hasSearched && journeys.Count == 0)
-{
-    <div class="card">
-        <div class="card-body">
-            <h2 class="h6">No direct trains found</h2>
-            <p class="mb-0 text-muted">No train leaving @StationName(fromCode) in the next @minutes minutes stops at @StationName(toCode). Try a longer window.</p>
-        </div>
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
+        <span role="status">Checking the route of every train…</span>
     </div>
 }
-else if (journeys.Count > 0)
+else if (hasSearched)
 {
-    @if (weatherMessage is not null)
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        @if (IsSearchedRouteSaved())
+        {
+            <span class="small text-muted"><i class="bi bi-star-fill text-primary" aria-hidden="true"></i> In your saved routes</span>
+        }
+        else
+        {
+            <div class="input-group input-group-sm w-auto">
+                <input class="form-control" placeholder="Name this route (optional)" aria-label="Route name" @bind="routeName"/>
+                <button class="btn btn-outline-primary" @onclick="SaveRoute"><i class="bi bi-bookmark-plus" aria-hidden="true"></i> Save route</button>
+            </div>
+        }
+
+        @if (journeys.Count > 0)
+        {
+            <div class="d-flex align-items-center">
+                <span class="small me-1">Sort by:</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary @(sortBy == "leaves" ? "active" : "")" @onclick='() => SortBy("leaves")'>Leaves first</button>
+                    <button class="btn btn-outline-primary @(sortBy == "arrives" ? "active" : "")" @onclick='() => SortBy("arrives")'>Arrives first</button>
+                    <button class="btn btn-outline-primary @(sortBy == "late" ? "active" : "")" @onclick='() => SortBy("late")'>Least late</button>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (journeys.Count == 0)
     {
-        <div class="alert alert-secondary py-2 small">@weatherMessage</div>
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6">No direct trains found</h2>
+                <p class="mb-0 text-muted">No train leaving @StationName(searchedFrom) in the next @minutes minutes stops at @StationName(searchedTo). Try a longer window.</p>
+            </div>
+        </div>
     }
+    else
+    {
+        @if (weatherMessage is not null)
+        {
+            <div class="alert alert-secondary py-2 small">@weatherMessage</div>
+        }
 
-    <div class="d-flex justify-content-end align-items-center mb-3">
-        <span class="small me-1">Sort by:</span>
-        <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary @(sortBy == "leaves" ? "active" : "")" @onclick='() => SortBy("leaves")'>Leaves first</button>
-            <button class="btn btn-outline-primary @(sortBy == "arrives" ? "active" : "")" @onclick='() => SortBy("arrives")'>Arrives first</button>
-            <button class="btn btn-outline-primary @(sortBy == "late" ? "active" : "")" @onclick='() => SortBy("late")'>Least late</button>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Leaves</th>
-                        <th>Arrives at @StationName(toCode)</th>
-                        <th>Train</th>
-                        <th>Status</th>
-                        <th>Weather on arrival</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var journey in journeys)
-                    {
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 stack-table">
+                    <thead>
                         <tr>
-                            <td>
-                                <strong>@journey.Departure.ExpectedDeparture</strong>
-                                <div class="small text-muted">in @journey.Departure.DueIn min</div>
-                            </td>
-                            <td><strong>@journey.ArrivalTime</strong></td>
-                            <td>
-                                @journey.Departure.TrainCode
-                                <div class="small text-muted">to @journey.Departure.Destination</div>
-                            </td>
-                            <td><span class="badge @journey.Departure.StatusBadgeClass">@journey.Departure.StatusLabel</span></td>
-                            <td>
-                                @if (journey.ArrivalWeather is null)
-                                {
-                                    <span class="text-muted">—</span>
-                                }
-                                else
-                                {
-                                    <strong>@Math.Round(journey.ArrivalWeather.Temperature)°C</strong> @journey.ArrivalWeather.Description
-                                    <div class="small text-muted">@journey.ArrivalWeather.RainChance% chance of rain</div>
-                                    @if (journey.ArrivalWeather.NeedsUmbrella)
-                                    {
-                                        <span class="badge text-bg-info">Bring an umbrella</span>
-                                    }
-                                }
-                            </td>
+                            <th>Leaves</th>
+                            <th>Arrives at @StationName(searchedTo)</th>
+                            <th>Train</th>
+                            <th>Status</th>
+                            <th>Weather on arrival</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var journey in journeys)
+                        {
+                            <tr>
+                                <td data-label="Leaves">
+                                    <strong>@journey.Departure.ExpectedDeparture</strong>
+                                    <div class="small text-muted">in @journey.Departure.DueIn min</div>
+                                </td>
+                                <td data-label="Arrives"><strong>@journey.ArrivalTime</strong></td>
+                                <td data-label="Train">
+                                    @journey.Departure.TrainCode
+                                    <div class="small text-muted">to @journey.Departure.Destination</div>
+                                </td>
+                                <td data-label="Status"><span class="badge @journey.Departure.StatusBadgeClass">@journey.Departure.StatusLabel</span></td>
+                                <td data-label="Weather">
+                                    @if (journey.ArrivalWeather is null)
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @journey.ArrivalWeather.Icon" aria-hidden="true"></i>
+                                        <strong>@Math.Round(journey.ArrivalWeather.Temperature)°C</strong><span class="ms-1">@journey.ArrivalWeather.Description</span>
+                                        <div class="small text-muted">@journey.ArrivalWeather.RainChance% chance of rain</div>
+                                        @if (journey.ArrivalWeather.NeedsUmbrella)
+                                        {
+                                            <span class="badge text-bg-info"><i class="bi bi-umbrella" aria-hidden="true"></i> Bring an umbrella</span>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    }
 }
 
 @code {
@@ -183,6 +195,14 @@ else if (journeys.Count > 0)
     private List<SavedRoute> savedRoutes = new();
     private string routeName = string.Empty;
     private string? routeMessage;
+    private string searchedFrom = string.Empty;
+    private string searchedTo = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "from")]
+    public string? FromQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "to")]
+    public string? ToQuery { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -197,6 +217,19 @@ else if (journeys.Count > 0)
         LoadSavedRoutes();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(FromQuery) && !string.IsNullOrEmpty(ToQuery))
+        {
+            fromCode = FromQuery;
+            toCode = ToQuery;
+            isLoading = true;
+            StateHasChanged();
+            await FindJourneys();
+            StateHasChanged();
+        }
+    }
+
     private async Task FindJourneys()
     {
         isLoading = true;
@@ -208,6 +241,8 @@ else if (journeys.Count > 0)
             journeys = await IrishRailService.GetJourneysAsync(fromCode, toCode, minutes);
             await LoadArrivalWeather();
             SortBy(sortBy);
+            searchedFrom = fromCode;
+            searchedTo = toCode;
             hasSearched = true;
         }
         catch (ArgumentException ex)
@@ -228,7 +263,6 @@ else if (journeys.Count > 0)
         }
     }
 
-    // Weather is a bonus: if Open-Meteo fails, the train times are still shown
     private async Task LoadArrivalWeather()
     {
         weatherMessage = null;
@@ -269,9 +303,9 @@ else if (journeys.Count > 0)
         routeMessage = null;
         var route = new SavedRoute
         {
-            Name = string.IsNullOrWhiteSpace(routeName) ? $"{StationName(fromCode)} → {StationName(toCode)}" : routeName.Trim(),
-            FromCode = fromCode,
-            ToCode = toCode
+            Name = string.IsNullOrWhiteSpace(routeName) ? $"{StationName(searchedFrom)} → {StationName(searchedTo)}" : routeName.Trim(),
+            FromCode = searchedFrom,
+            ToCode = searchedTo
         };
 
         try
@@ -292,6 +326,11 @@ else if (journeys.Count > 0)
         {
             routeMessage = "Couldn't save your routes. Try again.";
         }
+    }
+
+    private bool IsSearchedRouteSaved()
+    {
+        return savedRoutes.Contains(new SavedRoute { FromCode = searchedFrom, ToCode = searchedTo });
     }
 
     private void DeleteRoute(SavedRoute route)
