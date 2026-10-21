@@ -4,6 +4,7 @@ namespace soa_ca1.Models
     {
         public string TrainCode { get; set; } = string.Empty;
         public string TrainType { get; set; } = string.Empty;
+        public string TrainDate { get; set; } = string.Empty;
         public string Origin { get; set; } = string.Empty;
         public string Destination { get; set; } = string.Empty;
         public string Direction { get; set; } = string.Empty;
@@ -21,15 +22,40 @@ namespace soa_ca1.Models
         {
             get
             {
-                if (IsLate) return $"+{Late} min";
-                if (Status == "En Route") return "On time";
+                if (IsLate)
+                {
+                    return $"+{Late} min";
+                }
+                if (Status == "En Route")
+                {
+                    return "On time";
+                }
                 return "Scheduled";
+            }
+        }
+
+        public string StatusBadgeClass
+        {
+            get
+            {
+                if (IsLate)
+                {
+                    return "text-bg-warning";
+                }
+                if (Status == "En Route")
+                {
+                    return "text-bg-success";
+                }
+                return "text-bg-secondary";
             }
         }
 
         public int CompareTo(Departure? other)
         {
-            if (other is null) return 1;
+            if (other is null)
+            {
+                return 1;
+            }
 
             return DueIn.CompareTo(other.DueIn);
         }

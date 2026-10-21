@@ -1,0 +1,21 @@
+{
+  "latitude": 53.991413,
+  "longitude": -6.3874054,
+  "generationtime_ms": 0.05,
+  "utc_offset_seconds": 3600,
+  "timezone": "Europe/Dublin",
+  "timezone_abbreviation": "GMT+1",
+  "elevation": 5.0,
+  "hourly_units": {
+    "time": "iso8601",
+    "temperature_2m": "°C",
+    "precipitation_probability": "%",
+    "weather_code": "wmo code"
+  },
+  "hourly": {
+    "time": ["2026-10-18T17:00", "2026-10-18T18:00", "2026-10-18T23:00", "2026-10-19T00:00", "2026-10-19T17:00"],
+    "temperature_2m": [14.2, 13.6, 9.8, 9.1, 15.0],
+    "precipitation_probability": [10, 65, 30, null, 0],
+    "weather_code": [3, 61, 2, 45, 0]
+  }
+}

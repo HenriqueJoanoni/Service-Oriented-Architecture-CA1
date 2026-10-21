@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfObjStation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://api.irishrail.ie/realtime/">
+  <objStation>
+    <StationDesc>Dundalk</StationDesc>
+    <StationAlias />
+    <StationLatitude>54.0009</StationLatitude>
+    <StationLongitude>-6.41302</StationLongitude>
+    <StationCode>DDALK</StationCode>
+    <StationId>120</StationId>
+  </objStation>
+  <objStation>
+    <StationDesc>Belfast</StationDesc>
+    <StationAlias />
+    <StationLatitude>54.6123</StationLatitude>
+    <StationLongitude>-5.91744</StationLongitude>
+    <StationCode>BFSTC</StationCode>
+    <StationId>228</StationId>
+  </objStation>
+  <objStation>
+    <StationDesc>Drogheda</StationDesc>
+    <StationAlias />
+    <StationLatitude>53.7119</StationLatitude>
+    <StationLongitude>-6.33555</StationLongitude>
+    <StationCode>DGHDA</StationCode>
+    <StationId>121</StationId>
+  </objStation>
+</ArrayOfObjStation>

@@ -1,0 +1,383 @@
+@page "/journey"
+@using System.Text.Json
+@using System.Xml
+
+<PageTitle>Plan a journey · Trainsportation</PageTitle>
+
+<h1 class="display-6 mb-4">Plan a journey</h1>
+
+@if (savedRoutes.Count > 0)
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+        <span class="small text-muted"><i class="bi bi-star" aria-hidden="true"></i> Saved routes:</span>
+        @foreach (var route in savedRoutes)
+        {
+            <span class="saved-pill d-inline-flex align-items-center border rounded-pill bg-white ps-3 pe-2 py-1">
+                <button class="btn btn-link btn-sm p-0 text-decoration-none" title="@StationName(route.FromCode) → @StationName(route.ToCode)" @onclick="() => UseRoute(route)">@route.Name</button>
+                <button class="btn-close ms-2" aria-label="Delete @route.Name" title="Delete" @onclick="() => DeleteRoute(route)"></button>
+            </span>
+        }
+    </div>
+}
+
+@if (routeMessage is not null)
+{
+    <div class="alert alert-warning">@routeMessage</div>
+}
+
+<div class="row g-2 align-items-end mb-2">
+    <div class="col-md">
+        <label class="form-label" for="from">From</label>
+        <select id="from" class="form-select" @bind="fromCode">
+            <option value="">Choose a station</option>
+            @foreach (var station in stations)
+            {
+                <option value="@station.Code">@station.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-auto">
+        <button class="btn btn-outline-primary w-100" title="Swap stations" aria-label="Swap stations" @onclick="SwapStations"><i class="bi bi-arrow-left-right" aria-hidden="true"></i></button>
+    </div>
+    <div class="col-md">
+        <label class="form-label" for="to">To</label>
+        <select id="to" class="form-select" @bind="toCode">
+            <option value="">Choose a station</option>
+            @foreach (var station in stations)
+            {
+                <option value="@station.Code">@station.Name</option>
+            }
+        </select>
+    </div>
+</div>
+
+<div class="row g-2 align-items-end mb-3">
+    <div class="col-sm-auto">
+        <label class="form-label" for="minutes">Leaving within</label>
+        <select id="minutes" class="form-select" @bind="minutes">
+            <option value="30">30 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="90">90 minutes</option>
+        </select>
+    </div>
+    <div class="col-sm-auto">
+        <button class="btn btn-primary w-100" @onclick="FindJourneys" disabled="@isLoading">Find trains</button>
+    </div>
+</div>
+
+@if (validationMessage is not null)
+{
+    <div class="alert alert-warning">@validationMessage</div>
+}
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger d-flex justify-content-between align-items-center">
+        <span>@errorMessage</span>
+        <button class="btn btn-outline-danger btn-sm" @onclick="FindJourneys">Retry</button>
+    </div>
+}
+
+@if (isLoading)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
+        <span role="status">Checking the route of every train…</span>
+    </div>
+}
+else if (hasSearched)
+{
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        @if (IsSearchedRouteSaved())
+        {
+            <span class="small text-muted"><i class="bi bi-star-fill text-primary" aria-hidden="true"></i> In your saved routes</span>
+        }
+        else
+        {
+            <div class="input-group input-group-sm w-auto">
+                <input class="form-control" placeholder="Name this route (optional)" aria-label="Route name" @bind="routeName"/>
+                <button class="btn btn-outline-primary" @onclick="SaveRoute"><i class="bi bi-bookmark-plus" aria-hidden="true"></i> Save route</button>
+            </div>
+        }
+
+        @if (journeys.Count > 0)
+        {
+            <div class="d-flex align-items-center">
+                <span class="small me-1">Sort by:</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary @(sortBy == "leaves" ? "active" : "")" @onclick='() => SortBy("leaves")'>Leaves first</button>
+                    <button class="btn btn-outline-primary @(sortBy == "arrives" ? "active" : "")" @onclick='() => SortBy("arrives")'>Arrives first</button>
+                    <button class="btn btn-outline-primary @(sortBy == "late" ? "active" : "")" @onclick='() => SortBy("late")'>Least late</button>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (journeys.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6">No direct trains found</h2>
+                <p class="mb-0 text-muted">No train leaving @StationName(searchedFrom) in the next @minutes minutes stops at @StationName(searchedTo). Try a longer window.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (weatherMessage is not null)
+        {
+            <div class="alert alert-secondary py-2 small">@weatherMessage</div>
+        }
+
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 stack-table">
+                    <thead>
+                        <tr>
+                            <th>Leaves</th>
+                            <th>Arrives at @StationName(searchedTo)</th>
+                            <th>Train</th>
+                            <th>Status</th>
+                            <th>Weather on arrival</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var journey in journeys)
+                        {
+                            <tr>
+                                <td data-label="Leaves">
+                                    <strong>@journey.Departure.ExpectedDeparture</strong>
+                                    <div class="small text-muted">in @journey.Departure.DueIn min</div>
+                                </td>
+                                <td data-label="Arrives"><strong>@journey.ArrivalTime</strong></td>
+                                <td data-label="Train">
+                                    @journey.Departure.TrainCode
+                                    <div class="small text-muted">to @journey.Departure.Destination</div>
+                                </td>
+                                <td data-label="Status"><span class="badge @journey.Departure.StatusBadgeClass">@journey.Departure.StatusLabel</span></td>
+                                <td data-label="Weather">
+                                    @if (journey.ArrivalWeather is null)
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @journey.ArrivalWeather.Icon" aria-hidden="true"></i>
+                                        <strong>@Math.Round(journey.ArrivalWeather.Temperature)°C</strong><span class="ms-1">@journey.ArrivalWeather.Description</span>
+                                        <div class="small text-muted">@journey.ArrivalWeather.RainChance% chance of rain</div>
+                                        @if (journey.ArrivalWeather.NeedsUmbrella)
+                                        {
+                                            <span class="badge text-bg-info"><i class="bi bi-umbrella" aria-hidden="true"></i> Bring an umbrella</span>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<Station> stations = new();
+    private List<Journey> journeys = new();
+    private string fromCode = string.Empty;
+    private string toCode = string.Empty;
+    private int minutes = 60;
+    private string sortBy = "leaves";
+    private bool isLoading;
+    private bool hasSearched;
+    private string? errorMessage;
+    private string? validationMessage;
+    private string? weatherMessage;
+    private List<SavedRoute> savedRoutes = new();
+    private string routeName = string.Empty;
+    private string? routeMessage;
+    private string searchedFrom = string.Empty;
+    private string searchedTo = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "from")]
+    public string? FromQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "to")]
+    public string? ToQuery { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            stations = await IrishRailService.GetStationsAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        LoadSavedRoutes();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(FromQuery) && !string.IsNullOrEmpty(ToQuery))
+        {
+            fromCode = FromQuery;
+            toCode = ToQuery;
+            isLoading = true;
+            StateHasChanged();
+            await FindJourneys();
+            StateHasChanged();
+        }
+    }
+
+    private async Task FindJourneys()
+    {
+        isLoading = true;
+        hasSearched = false;
+        errorMessage = null;
+        validationMessage = null;
+        try
+        {
+            journeys = await IrishRailService.GetJourneysAsync(fromCode, toCode, minutes);
+            await LoadArrivalWeather();
+            SortBy(sortBy);
+            searchedFrom = fromCode;
+            searchedTo = toCode;
+            hasSearched = true;
+        }
+        catch (ArgumentException ex)
+        {
+            validationMessage = ex.Message;
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (XmlException)
+        {
+            errorMessage = "Irish Rail sent data we couldn't read. Try again in a moment.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadArrivalWeather()
+    {
+        weatherMessage = null;
+        Station? destination = stations.Find(s => s.Code == toCode);
+        if (destination is null || journeys.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            List<HourlyForecast> forecasts = await WeatherService.GetForecastAsync(destination.Latitude, destination.Longitude);
+            foreach (var journey in journeys)
+            {
+                journey.ArrivalWeather = WeatherService.FindForecast(forecasts, journey.ArrivalTime, DateTime.Now);
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            weatherMessage = "The weather forecast isn't available right now, but the train times are up to date.";
+        }
+    }
+
+    private void LoadSavedRoutes()
+    {
+        try
+        {
+            savedRoutes = RouteStore.Load(RouteStore.FILE_PATH);
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            routeMessage = "Your saved routes couldn't be read, so the list starts empty.";
+        }
+    }
+
+    private void SaveRoute()
+    {
+        routeMessage = null;
+        var route = new SavedRoute
+        {
+            Name = string.IsNullOrWhiteSpace(routeName) ? $"{StationName(searchedFrom)} → {StationName(searchedTo)}" : routeName.Trim(),
+            FromCode = searchedFrom,
+            ToCode = searchedTo
+        };
+
+        try
+        {
+            if (!RouteStore.Add(savedRoutes, route))
+            {
+                routeMessage = "That route's already saved.";
+                return;
+            }
+            RouteStore.Save(savedRoutes, RouteStore.FILE_PATH);
+            routeName = string.Empty;
+        }
+        catch (ArgumentException ex)
+        {
+            routeMessage = ex.Message;
+        }
+        catch (IOException)
+        {
+            routeMessage = "Couldn't save your routes. Try again.";
+        }
+    }
+
+    private bool IsSearchedRouteSaved()
+    {
+        return savedRoutes.Contains(new SavedRoute { FromCode = searchedFrom, ToCode = searchedTo });
+    }
+
+    private void DeleteRoute(SavedRoute route)
+    {
+        routeMessage = null;
+        savedRoutes.Remove(route);
+        try
+        {
+            RouteStore.Save(savedRoutes, RouteStore.FILE_PATH);
+        }
+        catch (IOException)
+        {
+            routeMessage = "Couldn't save your routes. Try again.";
+        }
+    }
+
+    private async Task UseRoute(SavedRoute route)
+    {
+        fromCode = route.FromCode;
+        toCode = route.ToCode;
+        await FindJourneys();
+    }
+
+    private void SwapStations()
+    {
+        (fromCode, toCode) = (toCode, fromCode);
+    }
+
+    private void SortBy(string option)
+    {
+        sortBy = option;
+        if (option == "arrives")
+        {
+            journeys.Sort((a, b) => string.Compare(a.ArrivalTime, b.ArrivalTime));
+        }
+        else if (option == "late")
+        {
+            journeys.Sort((a, b) => a.Departure.Late.CompareTo(b.Departure.Late));
+        }
+        else
+        {
+            journeys.Sort();
+        }
+    }
+
+    private string StationName(string code)
+    {
+        return stations.Find(s => s.Code == code)?.Name ?? code;
+    }
+}

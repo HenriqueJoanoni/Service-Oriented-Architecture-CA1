@@ -34,7 +34,6 @@ body {
     background-color: var(--app-background);
 }
 
-/* Components below compile their colours as literals, so the root variables alone don't reach them. */
 .btn-primary {
     --bs-btn-bg: var(--bs-primary);
     --bs-btn-border-color: var(--bs-primary);
@@ -105,4 +104,41 @@ body {
     background-color: var(--app-tertiary);
     color: #fff;
     box-shadow: 0 -4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+.saved-pill .btn-close {
+    font-size: 0.55rem;
+}
+
+@media (max-width: 767.98px) {
+    .stack-table thead {
+        display: none;
+    }
+
+    .stack-table tbody tr {
+        display: block;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    .stack-table tbody td {
+        display: block;
+        position: relative;
+        padding: 0.25rem 0 0.25rem 40%;
+        border: 0;
+    }
+
+    .stack-table tbody td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 38%;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--bs-secondary-color);
+    }
+
+    .stack-table tbody td:empty {
+        display: none;
+    }
 }

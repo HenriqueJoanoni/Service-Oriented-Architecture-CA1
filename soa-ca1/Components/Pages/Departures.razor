@@ -36,6 +36,13 @@
 
 @if (departures.Count > 0)
 {
+    <div class="d-flex justify-content-between align-items-center small text-muted mb-2">
+        <span>Updated @lastUpdated.ToString("HH:mm")</span>
+        <button class="btn btn-link btn-sm p-0" @onclick="LoadDepartures" disabled="@isLoading">
+            <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Refresh
+        </button>
+    </div>
+
     <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
         <div>
             <label class="form-label small mb-1" for="direction">Direction</label>
@@ -70,7 +77,19 @@
 
 @if (isLoading)
 {
-    <p class="text-muted">Loading departures…</p>
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
+        <span role="status">Loading departures…</span>
+    </div>
+}
+else if (string.IsNullOrEmpty(stationCode) && errorMessage is null)
+{
+    <div class="card">
+        <div class="card-body text-center text-muted py-5">
+            <i class="bi bi-train-front fs-1" aria-hidden="true"></i>
+            <p class="mt-2 mb-0">Choose a station to see what's leaving in the next hour.</p>
+        </div>
+    </div>
 }
 else if (hasSearched && errorMessage is null && FilteredDepartures().Count == 0)
 {
@@ -85,7 +104,7 @@ else if (FilteredDepartures().Count > 0)
 {
     <div class="card">
         <div class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table align-middle mb-0 stack-table">
                 <thead>
                     <tr>
                         <th>Due</th>
@@ -99,20 +118,20 @@ else if (FilteredDepartures().Count > 0)
                     @foreach (var departure in FilteredDepartures())
                     {
                         <tr>
-                            <td>
+                            <td data-label="Due">
                                 <strong>@departure.DueIn min</strong>
                                 <div class="small text-muted">@departure.ExpectedDeparture</div>
                             </td>
-                            <td>
+                            <td data-label="Train">
                                 @departure.TrainCode
                                 <div class="small text-muted">@departure.TrainType</div>
                             </td>
-                            <td>
+                            <td data-label="Destination">
                                 @departure.Destination
                                 <div class="small text-muted">from @departure.Origin</div>
                             </td>
-                            <td><span class="badge @BadgeClass(departure)">@departure.StatusLabel</span></td>
-                            <td class="small text-muted">@departure.LastLocation</td>
+                            <td data-label="Status"><span class="badge @departure.StatusBadgeClass">@departure.StatusLabel</span></td>
+                            <td data-label="Last seen" class="small text-muted">@departure.LastLocation</td>
                         </tr>
                     }
                 </tbody>
@@ -132,6 +151,7 @@ else if (FilteredDepartures().Count > 0)
     private bool isLoading;
     private bool hasSearched;
     private string? errorMessage;
+    private DateTime lastUpdated;
 
     protected override async Task OnInitializedAsync()
     {
@@ -154,6 +174,7 @@ else if (FilteredDepartures().Count > 0)
         try
         {
             departures = await IrishRailService.GetDeparturesAsync(stationCode, minutes);
+            lastUpdated = DateTime.Now;
             directionFilter = string.Empty;
             typeFilter = string.Empty;
             SortBy(sortBy);
@@ -185,17 +206,16 @@ else if (FilteredDepartures().Count > 0)
     {
         sortBy = option;
         if (option == "late")
+        {
             departures.Sort((a, b) => b.Late.CompareTo(a.Late));
+        } 
         else if (option == "destination")
+        {
             departures.Sort((a, b) => string.Compare(a.Destination, b.Destination));
+        }
         else
+        {
             departures.Sort();
-    }
-
-    private static string BadgeClass(Departure departure)
-    {
-        if (departure.IsLate) return "text-bg-warning";
-        if (departure.Status == "En Route") return "text-bg-success";
-        return "text-bg-secondary";
+        }
     }
 }
